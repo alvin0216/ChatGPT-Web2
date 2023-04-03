@@ -13,9 +13,11 @@ import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore } from '@/store'
+import { useChatStore, usePromptStore, useSettingStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
+
+const settingStore = useSettingStore()
 
 let controller = new AbortController()
 
@@ -128,10 +130,10 @@ async function onConversation() {
               dataSources.value.length - 1,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
+                text: lastText + data.text ?? '',
                 inversion: false,
                 error: false,
-                loading: true,
+                loading: false,
                 conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
                 requestOptions: { prompt: message, options: { ...options } },
               },
@@ -147,11 +149,10 @@ async function onConversation() {
             scrollToBottomIfAtBottom()
           }
           catch (error) {
-            //
+          //
           }
         },
       })
-      updateChatSome(+uuid, dataSources.value.length - 1, { loading: false })
     }
 
     await fetchChatAPIOnce()
@@ -202,6 +203,7 @@ async function onConversation() {
     scrollToBottomIfAtBottom()
   }
   finally {
+    parent.postMessage({ type: 'chatResponse', data: dataSources.value[dataSources.value.length - 1].text }, '*')
     loading.value = false
   }
 }
@@ -259,10 +261,10 @@ async function onRegenerate(index: number) {
               index,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
+                text: lastText + data.text ?? '',
                 inversion: false,
                 error: false,
-                loading: true,
+                loading: false,
                 conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
                 requestOptions: { prompt: message, ...options },
               },
@@ -280,7 +282,6 @@ async function onRegenerate(index: number) {
           }
         },
       })
-      updateChatSome(+uuid, index, { loading: false })
     }
     await fetchChatAPIOnce()
   }
@@ -313,6 +314,7 @@ async function onRegenerate(index: number) {
     )
   }
   finally {
+    parent.postMessage({ type: 'chatResponse', data: dataSources.value[index].text }, '*')
     loading.value = false
   }
 }
@@ -458,6 +460,16 @@ onMounted(() => {
   scrollToBottom()
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
+
+  window.addEventListener('message', (e) => {
+    if (e.data.type === 'sendBaseInfo') {
+      const data = e.data?.data || {}
+      const str = [`设备SN（序列号）是 ${data.sn}`, `MTM（机型号码）是 ${data.mtm}`].join(',')
+      settingStore.updateSetting({ systemMessage: str })
+    }
+  })
+
+  parent.postMessage({ type: 'getBaseInfo' }, '*')
 })
 
 onUnmounted(() => {
@@ -475,7 +487,11 @@ onUnmounted(() => {
       @toggle-using-context="toggleUsingContext"
     />
     <main class="flex-1 overflow-hidden">
-      <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
+      <div
+        id="scrollRef"
+        ref="scrollRef"
+        class="h-full overflow-hidden overflow-y-auto"
+      >
         <div
           id="image-wrapper"
           class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"

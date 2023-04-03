@@ -6,6 +6,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent'
 import httpsProxyAgent from 'https-proxy-agent'
 import fetch from 'node-fetch'
 import axios from 'axios'
+import { customSystemMessage } from 'src/context'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
 import type { ApiModel, ChatContext, ChatGPTUnofficialProxyAPIOptions, ModelConfig } from '../types'
@@ -25,7 +26,6 @@ const ErrorCodeMessage: Record<string, string> = {
 }
 
 const timeoutMs: number = !isNaN(+process.env.TIMEOUT_MS) ? +process.env.TIMEOUT_MS : 30 * 1000
-const disableDebug: boolean = process.env.OPENAI_API_DISABLE_DEBUG === 'true'
 
 let apiModel: ApiModel
 
@@ -45,7 +45,7 @@ let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
     const options: ChatGPTAPIOptions = {
       apiKey: process.env.OPENAI_API_KEY,
       completionParams: { model },
-      debug: !disableDebug,
+      debug: true,
     }
 
     // increase max token limit if use gpt-4
@@ -73,15 +73,13 @@ let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
     const OPENAI_API_MODEL = process.env.OPENAI_API_MODEL
     const options: ChatGPTUnofficialProxyAPIOptions = {
       accessToken: process.env.OPENAI_ACCESS_TOKEN,
-      debug: !disableDebug,
+      debug: true,
     }
-
     if (isNotEmptyString(OPENAI_API_MODEL))
       options.model = OPENAI_API_MODEL
 
-    options.apiReverseProxyUrl = isNotEmptyString(process.env.API_REVERSE_PROXY)
-      ? process.env.API_REVERSE_PROXY
-      : 'https://bypass.churchless.tech/api/conversation'
+    if (isNotEmptyString(process.env.API_REVERSE_PROXY))
+      options.apiReverseProxyUrl = process.env.API_REVERSE_PROXY
 
     setupProxy(options)
 
@@ -106,6 +104,8 @@ async function chatReplyProcess(options: RequestOptions) {
       else
         options = { ...lastContext }
     }
+
+    options.systemMessage = systemMessage + customSystemMessage
 
     const response = await api.sendMessage(message, {
       ...options,
@@ -161,19 +161,17 @@ async function chatConfig() {
 }
 
 function setupProxy(options: ChatGPTAPIOptions | ChatGPTUnofficialProxyAPIOptions) {
-  if (isNotEmptyString(process.env.SOCKS_PROXY_HOST) && isNotEmptyString(process.env.SOCKS_PROXY_PORT)) {
+  if (process.env.SOCKS_PROXY_HOST && process.env.SOCKS_PROXY_PORT) {
     const agent = new SocksProxyAgent({
       hostname: process.env.SOCKS_PROXY_HOST,
       port: process.env.SOCKS_PROXY_PORT,
-      userId: isNotEmptyString(process.env.SOCKS_PROXY_USERNAME) ? process.env.SOCKS_PROXY_USERNAME : undefined,
-      password: isNotEmptyString(process.env.SOCKS_PROXY_PASSWORD) ? process.env.SOCKS_PROXY_PASSWORD : undefined,
     })
     options.fetch = (url, options) => {
       return fetch(url, { agent, ...options })
     }
   }
   else {
-    if (isNotEmptyString(process.env.HTTPS_PROXY) || isNotEmptyString(process.env.ALL_PROXY)) {
+    if (process.env.HTTPS_PROXY || process.env.ALL_PROXY) {
       const httpsProxy = process.env.HTTPS_PROXY || process.env.ALL_PROXY
       if (httpsProxy) {
         const agent = new HttpsProxyAgent(httpsProxy)
