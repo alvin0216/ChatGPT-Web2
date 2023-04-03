@@ -399,7 +399,7 @@ function handleEnter(event: KeyboardEvent) {
     }
   }
   else {
-    if (event.key === 'Enter' && event.ctrlKey) {
+    if (event.key === 'Enter') {
       event.preventDefault()
       handleSubmit()
     }
@@ -462,11 +462,8 @@ onMounted(() => {
     inputRef.value?.focus()
 
   window.addEventListener('message', (e) => {
-    if (e.data.type === 'sendBaseInfo') {
-      const data = e.data?.data || {}
-      const str = [`设备SN（序列号）是 ${data.sn}`, `MTM（机型号码）是 ${data.mtm}`].join(',')
-      settingStore.updateSetting({ systemMessage: str })
-    }
+    if (e.data.type === 'sendBaseInfo')
+      settingStore.updateSetting({ systemMessage: e.data.context })
   })
 
   parent.postMessage({ type: 'getBaseInfo' }, '*')
