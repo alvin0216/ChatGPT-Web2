@@ -13,7 +13,7 @@ RUN pnpm install
 
 COPY . /app
 
-RUN pnpm run build
+RUN npm run build-only
 
 # build backend
 FROM node:lts-alpine as backend
