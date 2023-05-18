@@ -9,8 +9,8 @@ import { isNotEmptyString } from './utils/is'
 const app = express()
 const router = express.Router()
 
-// app.use(express.static('public'))
-app.use(express.static("C:\\GeneratedPictures\\"));
+app.use(express.static('public'))
+// app.use(express.static("C:\\GeneratedPictures\\"));
 app.use(express.json())
 
 app.all('*', (_, res, next) => {

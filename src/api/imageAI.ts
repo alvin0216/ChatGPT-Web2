@@ -8,7 +8,7 @@ export function genImg(prompt: string) {
 	}>({
 		url: 'http://localhost:8081/GenImg', method: 'post', data: {
 			"server": "10.176.33.52",
-			"port": 7861,
+			"port": 7860,
 			"prompt": prompt,
 			"OutputDir": "C:\\GeneratedPictures",
 		}
