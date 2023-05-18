@@ -111,7 +111,7 @@ function setWallpaperState(ImagePath: string) {
 const picUrl = computed(() => {
 	const image = wallpaperUrl?.split(/\\/g).pop()
 	if (!image) return ''
-	return `/api/${image}?t=${Date.now()}`;
+	return `http://localhost:8081/Images?${image}`;
 })
 
 
